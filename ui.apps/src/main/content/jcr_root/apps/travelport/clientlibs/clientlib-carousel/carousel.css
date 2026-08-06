@@ -1,0 +1,15 @@
+.tp-carousel{position:relative;overflow:hidden}
+.tp-carousel__viewport{display:flex;transition:transform .4s ease}
+.tp-carousel__slide{min-width:100%;box-sizing:border-box;padding:1rem}
+.tp-carousel__prev,.tp-carousel__next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);color:#fff;border:none;padding:.5rem}
+.tp-carousel__prev{left:.5rem}
+.tp-carousel__next{right:.5rem}
+
+.tp-carousel__image{max-width:100%;height:auto;display:block;margin:0 auto 0.5rem}
+.tp-carousel__title{font-size:1.25rem;margin:.25rem 0}
+.tp-carousel__description{font-size:1rem;margin:.25rem 0;color:#444}
+.tp-carousel__cta{display:inline-block;margin-top:.5rem;padding:.4rem .75rem;background:#007ac9;color:#fff;border:none;border-radius:3px}
+
+@media (min-width:768px){
+	.tp-carousel__slide{padding:2rem}
+}

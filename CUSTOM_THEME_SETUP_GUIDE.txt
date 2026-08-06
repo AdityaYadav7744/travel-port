@@ -1,0 +1,123 @@
+===================================================================================
+AEM FORMS CLOUD SERVICE - CUSTOM CORE COMPONENTS THEME SETUP & IMPLEMENTATION GUIDE
+Project: Travelport AEM Forms (Employee Registration)
+===================================================================================
+
+This guide outlines the end-to-end steps to create, customize, build, deploy, 
+and apply a custom Core Components theme to your Adaptive Form in AEM.
+
+-----------------------------------------------------------------------------------
+PHASE 1: CLONE & SETUP LOCAL THEME REPOSITORY
+-----------------------------------------------------------------------------------
+1. Open PowerShell or Command Prompt.
+
+2. Navigate to your projects directory:
+   cd C:\Users\ayada\Desktop\Projects\AEMforms\canvas-theme
+
+3. Clone the official Adobe Canvas Theme repository (if not already cloned):
+   git clone https://github.com/adobe/aem-forms-theme-canvas.git employee-registration-theme
+
+4. Navigate into the cloned folder:
+   cd C:\Users\ayada\Desktop\Projects\AEMforms\canvas-theme\employee-registration-theme
+
+5. Install required Node dependencies (if not already installed):
+   npm install
+
+6. Create a `.env` file in the root of `employee-registration-theme`:
+   File Location: C:\Users\ayada\Desktop\Projects\AEMforms\canvas-theme\employee-registration-theme\.env
+   Content:
+   --------------------------------------------------
+   # AEM url
+   AEM_URL=http://localhost:4502
+
+   # Adaptive form name
+   AEM_ADAPTIVE_FORM=employee-registration
+
+   # AEM proxy port
+   AEM_PROXY_PORT=7000
+   --------------------------------------------------
+
+
+-----------------------------------------------------------------------------------
+PHASE 2: LIVE DEVELOPMENT & SCSS CUSTOMIZATION
+-----------------------------------------------------------------------------------
+1. Start the Live Preview server with Hot Reloading:
+   cmd.exe /c npm run live
+
+   - This compiles your theme SCSS and launches a live proxy server at:
+     http://localhost:7000
+
+2. Customize SCSS files inside the `src/` directory:
+   - `src/theme.scss`:
+     Global variables (brand primary colors, font families, base sizes, focus rings).
+   - `src/components/`:
+     Component-specific SCSS files:
+     * `_textinput.scss`: Text fields, email fields, textareas
+     * `_button.scss`: Submit, reset, next, previous buttons
+     * `_dropdown.scss`: Select dropdowns
+     * `_panel.scss`: Form sections, accordions, tabs
+     * `_wizard.scss`: Multi-step form step indicators
+
+
+-----------------------------------------------------------------------------------
+PHASE 3: BUILD THE THEME CLIENTLIB
+-----------------------------------------------------------------------------------
+1. Run the ClientLib generator command with your custom category name:
+   cmd.exe /c npm run create-clientlib --category=fdtheme.travelport.employee-registration.style
+
+2. Output Location:
+   The compiled AEM Client Library will be generated at:
+   C:\Users\ayada\Desktop\Projects\AEMforms\canvas-theme\employee-registration-theme\theme-clientlibs\fdtheme.travelport.employee-registration.style
+
+
+-----------------------------------------------------------------------------------
+PHASE 4: INTEGRATE CLIENTLIB INTO YOUR MAIN AEM REPOSITORY (ui.apps)
+-----------------------------------------------------------------------------------
+1. Copy the generated ClientLib folder:
+   FROM:
+   C:\Users\ayada\Desktop\Projects\AEMforms\canvas-theme\employee-registration-theme\theme-clientlibs\fdtheme.travelport.employee-registration.style
+
+   TO:
+   c:\Users\ayada\Desktop\Projects\AEMforms\aem-travelport\ui.apps\src\main\content\jcr_root\apps\travelport\clientlibs\clientlibs-forms\theme-base-clientlibs\
+
+2. Verify the directory structure in `ui.apps`:
+   ui.apps/src/main/content/jcr_root/apps/travelport/clientlibs/clientlibs-forms/theme-base-clientlibs/fdtheme.travelport.employee-registration.style/
+     ├── .content.xml
+     ├── css.txt
+     ├── js.txt
+     ├── css/
+     │   └── theme.css
+     └── js/
+         └── theme.js
+
+3. Build and deploy your project package to your local AEM instance:
+   In PowerShell (at project root `c:\Users\ayada\Desktop\Projects\AEMforms\aem-travelport`):
+   mvn clean install -PautoInstallPackage
+
+
+-----------------------------------------------------------------------------------
+PHASE 5: APPLY THE THEME TO YOUR EMPLOYEE REGISTRATION FORM IN AEM AUTHOR
+-----------------------------------------------------------------------------------
+1. Log into your AEM Author instance:
+   http://localhost:4502
+
+2. Navigate to:
+   AEM Navigation > Forms > Forms & Documents
+
+3. Select your "Employee Registration" Adaptive Form and click Edit.
+
+4. Open Form Container Configuration:
+   - Click the top-level "Adaptive Form Container" component.
+   - Click the Configure (wrench) icon or open Page Properties.
+
+5. Assign Client Library Category:
+   - Go to the "Client Libraries" or "Style" tab.
+   - In the "Client Library Category" field, enter:
+     fdtheme.travelport.employee-registration.style
+
+6. Save, Preview, and Publish:
+   - Click Done / Save.
+   - Preview the form to verify all custom styling is applied.
+   - Publish the form when ready.
+
+===================================================================================

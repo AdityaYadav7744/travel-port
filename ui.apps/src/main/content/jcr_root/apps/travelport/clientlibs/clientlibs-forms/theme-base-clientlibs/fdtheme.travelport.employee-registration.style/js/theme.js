@@ -1,0 +1,2 @@
+(()=>{var e=globalThis,r={},i={},n=e.parcelRequire877e;null==n&&((n=function(e){if(e in r)return r[e].exports;if(e in i){var n=i[e];delete i[e];var o={id:e,exports:{}};return r[e]=o,n.call(o.exports,o,o.exports),o.exports}var t=Error("Cannot find module '"+e+"'");throw t.code="MODULE_NOT_FOUND",t}).register=function(e,r){i[e]=r},e.parcelRequire877e=n),n.register,Object.assign(n.i??={},{bDfcA:"resources/images/favicon.png"})})();
+//# sourceMappingURL=theme.js.map
