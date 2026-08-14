@@ -1,0 +1,14 @@
+{
+  "allow.empty": true,
+  "allow.hosts": [
+    "localhost"
+  ],
+  "allow.hosts.regexp": [
+    ".*"
+  ],
+  "filter.types": [
+    "POST",
+    "PUT",
+    "DELETE"
+  ]
+}

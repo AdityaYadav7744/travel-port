@@ -5,5 +5,4 @@
     <filter root="/apps/travelport/i18n"/>
     <filter root="/apps/fd/af/themes" mode="merge"/>
     <filter root="/apps/travelport/customsubmitaction"/>
-
 </workspaceFilter>

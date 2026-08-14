@@ -1,0 +1,10 @@
+{
+  "filter.methods": [
+    "POST",
+    "PUT",
+    "DELETE"
+  ],
+  "filter.excluded.paths": [
+    "/bin/travelport/local-mysql-draft"
+  ]
+}

@@ -1,0 +1,71 @@
+<sly data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html">
+    <sly data-sly-call="${clientlib.all @ categories='travelport.mysqldraftlist'}"/>
+</sly>
+
+<div class="tp-drafts-container" id="tp-drafts-wrapper">
+    <div class="tp-drafts-header">
+        <div class="tp-drafts-title-group">
+            <h2 class="tp-drafts-title">
+                <span class="tp-drafts-icon">📁</span> Saved Form Drafts
+            </h2>
+            <span class="tp-drafts-count" id="tp-drafts-badge">Loading...</span>
+        </div>
+        <button type="button" class="tp-btn tp-btn-refresh" id="tp-refresh-drafts-btn">
+            <span class="tp-btn-icon">🔄</span> Refresh Drafts
+        </button>
+    </div>
+
+    <!-- Loading State -->
+    <div class="tp-drafts-loading" id="tp-drafts-loader">
+        <div class="tp-spinner"></div>
+        <p>Fetching saved drafts from database...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="tp-drafts-alert tp-alert-error" id="tp-drafts-error" style="display: none;">
+        <span class="tp-alert-icon">⚠️</span>
+        <span class="tp-alert-msg" id="tp-error-message">Failed to load drafts.</span>
+    </div>
+
+    <!-- Empty State -->
+    <div class="tp-drafts-empty" id="tp-drafts-empty-state" style="display: none;">
+        <div class="tp-empty-icon">📂</div>
+        <h3>No Drafts Found</h3>
+        <p>You haven't saved any form drafts yet. When you save a form as draft, it will appear here.</p>
+    </div>
+
+    <!-- Drafts Table / Grid -->
+    <div class="tp-drafts-table-responsive" id="tp-drafts-table-container" style="display: none;">
+        <table class="tp-drafts-table">
+            <thead>
+                <tr>
+                    <th>Form Title</th>
+                    <th>Draft ID</th>
+                    <th>Last Updated</th>
+                    <th class="tp-text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tp-drafts-table-body">
+                <!-- Dynamic rows rendered by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- JSON Data Modal -->
+    <div class="tp-modal" id="tp-draft-modal" style="display: none;">
+        <div class="tp-modal-overlay"></div>
+        <div class="tp-modal-content">
+            <div class="tp-modal-header">
+                <h3 class="tp-modal-title">Form Data Payload</h3>
+                <button type="button" class="tp-modal-close" id="tp-modal-close-btn">&times;</button>
+            </div>
+            <div class="tp-modal-body">
+                <pre class="tp-json-code" id="tp-modal-json"></pre>
+            </div>
+            <div class="tp-modal-footer">
+                <button type="button" class="tp-btn tp-btn-secondary" id="tp-modal-copy-btn">Copy JSON</button>
+                <button type="button" class="tp-btn tp-btn-primary" id="tp-modal-done-btn">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
