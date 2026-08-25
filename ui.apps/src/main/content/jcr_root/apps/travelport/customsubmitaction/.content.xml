@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
-jcr:description="[Custom Submit Action]"
-jcr:primaryType="sling:Folder"
-
-guideComponentType="fd/af/components/guidesubmittype"
-guideDataModel="basic,xfa,xsd"
-submitService="[Custom Submit Action]"/>
+    jcr:primaryType="sling:Folder"
+    jcr:title="Custom Submit Action"
+    jcr:description="Custom Submit Action"
+    sling:resourceSuperType="fd/af/components/guidesubmittype"
+    guideComponentType="fd/af/components/guidesubmittype"
+    guideDataModel="basic"
+    submitService="Custom Submit Action"/>
