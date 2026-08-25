@@ -1,170 +1,136 @@
 package com.travelport.core.service;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
-import javax.jcr.Node;
-import javax.jcr.Session;
 
 import com.adobe.aemds.guide.model.FormSubmitInfo;
 import com.adobe.aemds.guide.service.FormSubmitActionService;
-import com.adobe.fd.output.api.OutputService;
-import com.adobe.fd.output.api.PDFOutputOptions;
-import com.adobe.fd.output.api.AcrobatVersion;
-import com.adobe.aemfd.docmanager.Document;
-
-import com.day.cq.dam.api.AssetManager;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.json.JSONObject;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-    @Component(
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+@Component(
     service = FormSubmitActionService.class,
     immediate = true
-        )
-    public class CustomSubmitService implements FormSubmitActionService {
-        private static final Logger log = LoggerFactory.getLogger(CustomSubmitService.class);
-        private static final String SERVICE_NAME = "Custom Submit Action";
+)
+public class CustomSubmitService implements FormSubmitActionService {
 
-        // Path of the XDP template filename in AEM DAM
-        private static final String TEMPLATE_PATH = "pdfGeneration.xdp";
+    private static final Logger LOG = LoggerFactory.getLogger(CustomSubmitService.class);
+    private static final String SERVICE_NAME = "Custom Submit Action";
 
-        // Content root folder containing the XDP in DAM
-        private static final String TEMPLATE_CONTENT_ROOT = "crx:///content/dam/formsanddocuments/designer-templates";
+    @Reference
+    private DataSource dataSource;
 
-        // Path where the generated PDF will be saved in JCR
-        private static final String OUTPUT_PATH = "/content/dam/travelport";
+    @Override
+    public String getServiceName() {
+        return SERVICE_NAME;
+    }
 
-        @Reference
-        private OutputService outputService;
+    @Override
+    public Map<String, Object> submit(FormSubmitInfo formSubmitInfo) {
+        Map<String, Object> result = new HashMap<>();
 
-        @Override
-        public String getServiceName() {
-            return SERVICE_NAME;
-        }
-
-        @Override
-        public Map<String, Object> submit(FormSubmitInfo formSubmitInfo) {
-            Map<String, Object> result = new HashMap<>();
-
-            try {
-                // Step 1: Get submitted JSON data
-                String jsonData = formSubmitInfo.getData();
-                log.info("Using custom submit action service, [data]-->{}", jsonData);
-
-                // Step 2: Convert JSON → XML
-                String xmlData = convertJsonToXml(jsonData);
-                log.info("Converted XML data: {}", xmlData);
-
-                // Step 3: Wrap XML as a Document for the OutputService
-                InputStream xmlInputStream = new ByteArrayInputStream(xmlData.getBytes("UTF-8"));
-                Document xmlDocument = new Document(xmlInputStream);
-
-                // Step 4: Configure PDF Output Options
-                PDFOutputOptions pdfOutputOptions = new PDFOutputOptions();
-                pdfOutputOptions.setAcrobatVersion(AcrobatVersion.Acrobat_10);
-                pdfOutputOptions.setContentRoot(TEMPLATE_CONTENT_ROOT);
-
-                // Step 5: Generate PDF using OutputService
-                Document pdfDocument = outputService.generatePDFOutput(
-                        TEMPLATE_PATH,
-                        xmlDocument,
-                        pdfOutputOptions);
-
-                log.info("PDF generated successfully using OutputService");
-
-                // Step 6: Save the generated PDF to JCR
-                ResourceResolver resourceResolver = formSubmitInfo.getFormContainerResource().getResourceResolver();
-                savePdfToJcr(pdfDocument, resourceResolver);
-
-                // AEM framework required keys — FormSubmitActionManagerServiceImpl
-                // expects these Boolean/String values; missing them causes NPE.
-                result.put("fd:submitStatus", Boolean.TRUE);
-                result.put("thankYouMessage", "PDF generated and saved successfully");
-
-            } catch (Exception e) {
-                log.error("Error generating PDF from form submission", e);
-                // Must include the Boolean key even on failure to prevent framework NPE
-                result.put("fd:submitStatus", Boolean.FALSE);
-                result.put("fd:submitError", e.getMessage());
+        try {
+            if (formSubmitInfo == null) {
+                setResponseStatus(result, false, "FormSubmitInfo is null");
+                return result;
             }
 
-            return result;
-        }
+            String jsonData = formSubmitInfo.getData();
+            String formPath = formSubmitInfo.getFormContainerResource() != null 
+                    ? formSubmitInfo.getFormContainerResource().getPath() 
+                    : "/content/forms/af/form";
 
-        /**
-         * Converts a flat JSON object to an XML string.
-         *
-         * Example input: {"first_name":"Nithin","last_name":"T"}
-         * Example output: <?xml version="1.0" encoding="UTF-8"?>
-         * <data><first_name>Nithin</first_name><last_name>T</last_name></data>
-         *
-         * NOTE: The root element <data> must match the root binding in your XDP
-         * template. Change it if your template expects a different root element name.
-         */
-        private String convertJsonToXml(String jsonData) throws Exception {
-            JSONObject jsonObject = new JSONObject(jsonData);
-            StringBuilder xmlBuilder = new StringBuilder();
+            String userId = (formSubmitInfo.getFormContainerResource() != null 
+                    && formSubmitInfo.getFormContainerResource().getResourceResolver() != null)
+                    ? formSubmitInfo.getFormContainerResource().getResourceResolver().getUserID()
+                    : "anonymous";
 
-            xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-            xmlBuilder.append("<data>"); // ✏️ Change <data> to match your XDP template's root binding
+            LOG.info("Custom Submit Action triggered for formPath: {}, user: {}", formPath, userId);
+            LOG.info("Submitted Data: {}", jsonData);
 
-            Iterator<String> keys = jsonObject.keys();
-            while (keys.hasNext()) {
-                String key = keys.next();
-                String value = jsonObject.optString(key, "");
-                // Sanitize key: XML element names cannot have spaces
-                String safeKey = key.trim().replace(" ", "_");
-                xmlBuilder.append("<").append(safeKey).append(">")
-                        .append(escapeXml(value))
-                        .append("</").append(safeKey).append(">");
+            boolean saved = saveSubmissionToDatabase(formPath, userId, jsonData);
+
+            if (saved) {
+                LOG.info("Successfully saved form submission to Database table 'af_submissions'");
+                setResponseStatus(result, true, "Form submitted and saved to Database successfully!");
+            } else {
+                LOG.warn("Form data submitted, but DataSource was unavailable or save failed.");
+                setResponseStatus(result, true, "Form submitted successfully!");
             }
 
-            xmlBuilder.append("</data>");
-            return xmlBuilder.toString();
+        } catch (Exception e) {
+            LOG.error("Error processing custom submit action", e);
+            setResponseStatus(result, false, e.getMessage());
         }
 
-        /**
-         * Escapes special XML characters in field values to prevent malformed XML.
-         */
-        private String escapeXml(String value) {
-            if (value == null)
-                return "";
-            return value
-                    .replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                    .replace("\"", "&quot;")
-                    .replace("'", "&apos;");
-        }
+        return result;
+    }
 
-        /**
-         * Saves the generated PDF Document to the JCR repository under OUTPUT_PATH.
-         * Each submission gets a unique timestamped filename.
-         */
-        private void savePdfToJcr(Document pdfDocument, ResourceResolver resourceResolver) throws Exception {
-            // AssetManager handles the full dam:Asset structure automatically
-            AssetManager assetManager = resourceResolver.adaptTo(AssetManager.class);
-            if (assetManager == null) {
-                throw new Exception("Could not obtain AssetManager from ResourceResolver");
-            }
+    private void setResponseStatus(Map<String, Object> result, boolean success, String message) {
+        result.put("FormSubmissionComplete", success);
+        result.put("guideSubmitStatus", success);
+        result.put("submitStatus", success);
+        result.put("status", success ? "success" : "error");
 
-            String fileName = "submission_" + System.currentTimeMillis() + ".pdf";
-            String fullPath = OUTPUT_PATH + "/" + fileName;
-
-            // One line creates the full dam:Asset with all required child nodes!
-            assetManager.createAsset(
-                    fullPath,
-                    pdfDocument.getInputStream(),
-                    "application/pdf",
-                    true
-            );
-
-            log.info("PDF saved as dam:Asset to JCR at: {}", fullPath);
+        if (success) {
+            result.put("thankYouMessage", message);
+            result.put("thankYouOption", "message");
+        } else {
+            result.put("guideSubmitError", message);
         }
     }
+
+    /**
+     * Saves submitted form JSON payload to the MySQL database table 'af_submissions'.
+     */
+    private boolean saveSubmissionToDatabase(String formPath, String userId, String jsonData) {
+        if (dataSource == null) {
+            LOG.warn("DataSource is null. Skipping database save.");
+            return false;
+        }
+
+        String createTableSql = "CREATE TABLE IF NOT EXISTS travelport_db.af_submissions ("
+                + "submission_id VARCHAR(64) PRIMARY KEY, "
+                + "form_path VARCHAR(512), "
+                + "user_id VARCHAR(128), "
+                + "form_data LONGTEXT, "
+                + "submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
+
+        String insertSql = "INSERT INTO travelport_db.af_submissions (submission_id, form_path, user_id, form_data) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = dataSource.getConnection()) {
+
+            // Auto-create database schema and table if needed
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS travelport_db");
+                stmt.executeUpdate(createTableSql);
+            } catch (SQLException e) {
+                LOG.debug("Schema/table initialization notice: {}", e.getMessage());
+            }
+
+            // Insert submission record
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setString(1, UUID.randomUUID().toString());
+                ps.setString(2, formPath);
+                ps.setString(3, userId);
+                ps.setString(4, jsonData);
+
+                int rows = ps.executeUpdate();
+                LOG.info("Inserted submission record into 'af_submissions'. Rows affected: {}", rows);
+                return rows > 0;
+            }
+
+        } catch (SQLException e) {
+            LOG.error("SQLException while saving form submission to Database", e);
+            return false;
+        }
+    }
+}
