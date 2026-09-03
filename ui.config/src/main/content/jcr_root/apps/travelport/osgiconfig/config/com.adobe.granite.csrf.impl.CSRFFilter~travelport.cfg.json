@@ -5,6 +5,7 @@
     "DELETE"
   ],
   "filter.excluded.paths": [
-    "/bin/travelport/local-mysql-draft"
+    "/bin/travelport/local-mysql-draft",
+    "/bin/formdata"
   ]
 }
